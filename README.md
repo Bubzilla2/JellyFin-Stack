@@ -9,6 +9,10 @@ Radarr - https://github.com/Radarr/Radarr
 
 Sonarr - https://github.com/Sonarr/Sonarr
 
+recyclarr - https://github.com/recyclarr/recyclarr
+
+#Somedays
+
 Automatic Ripping Machine (ARM) - https://github.com/automatic-ripping-machine/automatic-ripping-machine
 
 Filebrowser - https://github.com/filebrowser/filebrowser
