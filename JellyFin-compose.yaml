@@ -1,0 +1,113 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin
+    container_name: jellyfin
+    user: uid:gid
+    network_mode: 'host'
+    volumes:
+      - /config/jellyfin:/config
+      - /cache/jellyfin:/cache
+      - type: bind
+        source: /media/movies
+        target: /movies
+      - type: bind
+        source: /media/tvshows
+        target: /tvshows
+        read_only: true
+      # Optional - extra fonts to be used during transcoding with subtitle burn-in
+      - type: bind
+        source: /path/to/fonts
+        target: /usr/local/share/fonts/custom
+        read_only: true
+    restart: 'unless-stopped'
+    # Optional - alternative address used for autodiscovery
+    environment:
+      - JELLYFIN_PublishedServerUrl=http://example.com
+    # Optional - may be necessary for docker healthcheck to pass if running in host network mode
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8096/ || exit 1
+      start_period: 20s
+      timeout: 3s
+      interval: 15s
+      retries: 3
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+services:
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    environment:
+      - LOG_LEVEL=debug
+      - TZ=Asia/Tashkent
+      - PORT=5055 #optional
+    ports:
+      - 5055:5055
+    volumes:
+      - config/jellyseerr:/app/config
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1
+      start_period: 20s
+      timeout: 3s
+      interval: 15s
+      retries: 3
+    restart: unless-stopped
+    
+      
+services:
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - /config/sonarr:/config
+      - /media/tvshows:/tv #optional
+      - /media/downloads:/downloads #optional
+    networks: [recyclarr]  
+    ports:
+      - 8989:8989
+    restart: unless-stopped\
+    depends_on:
+      - recyclarr
+
+services:
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - /config/radarr:/config
+      - /media/movies:/movies #optional
+      - /media/downloads:/downloads #optional
+    ports:
+      - 7878:7878
+    networks: [recyclarr]   
+    restart: unless-stopped
+    depends_on:
+      - recyclarr
+
+services:
+  recyclarr:
+    image: ghcr.io/recyclarr/recyclarr
+    container_name: recyclarr
+    user: 1000:1000
+    networks: [recyclarr]
+    volumes:
+      - config/recyclarr:/config
+    environment:
+      - TZ=America/Santiago  
+      - RECYCLARR_CREATE_CONFIG_FILE=true
+      - RECYCLARR_CONFIG_FILE=/config/recyclarr/recyclarr.yml
+    command: recyclarr --config /config/recyclarr/recyclarr.yml
+    restart: unless-stopped
+
+networks:
+  recyclarr:
+    name: recyclarr
+    external: true
